@@ -30,8 +30,6 @@
 
 #include "vehicle_body.h"
 
-#define ROLLING_INFLUENCE_FIX
-
 class btVehicleJacobianEntry {
 public:
 	Vector3 m_linearJointAxis;
@@ -144,6 +142,36 @@ void VehicleWheel::_update(PhysicsDirectBodyState *s) {
 	}
 }
 
+void VehicleWheel::set_engine_force(float p_length) {
+
+	m_engineForce = p_length;
+}
+
+float VehicleWheel::get_engine_force() const {
+
+	return m_engineForce;
+}
+
+void VehicleWheel::set_brake(float p_length) {
+
+	m_brake = p_length;
+}
+
+float VehicleWheel::get_brake() const {
+
+	return m_brake;
+}
+
+void VehicleWheel::set_steering(float p_length) {
+
+	m_steering = p_length;
+}
+
+float VehicleWheel::get_steering() const {
+
+	return m_steering;
+}
+
 void VehicleWheel::set_radius(float p_radius) {
 
 	m_wheelRadius = p_radius;
@@ -231,7 +259,21 @@ bool VehicleWheel::is_in_contact() const {
 	return m_raycastInfo.m_isInContact;
 }
 
+float VehicleWheel::get_skidinfo() const {
+
+	return m_skidInfo;
+}
+
 void VehicleWheel::_bind_methods() {
+
+	ClassDB::bind_method(D_METHOD("set_engine_force", "length"), &VehicleWheel::set_engine_force);
+	ClassDB::bind_method(D_METHOD("get_engine_force"), &VehicleWheel::get_engine_force);
+
+	ClassDB::bind_method(D_METHOD("set_brake", "length"), &VehicleWheel::set_brake);
+	ClassDB::bind_method(D_METHOD("get_brake"), &VehicleWheel::get_brake);
+
+	ClassDB::bind_method(D_METHOD("set_steering", "length"), &VehicleWheel::set_steering);
+	ClassDB::bind_method(D_METHOD("get_steering"), &VehicleWheel::get_steering);
 
 	ClassDB::bind_method(D_METHOD("set_radius", "length"), &VehicleWheel::set_radius);
 	ClassDB::bind_method(D_METHOD("get_radius"), &VehicleWheel::get_radius);
@@ -254,15 +296,6 @@ void VehicleWheel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_damping_relaxation", "length"), &VehicleWheel::set_damping_relaxation);
 	ClassDB::bind_method(D_METHOD("get_damping_relaxation"), &VehicleWheel::get_damping_relaxation);
 
-	ClassDB::bind_method(D_METHOD("set_use_as_traction", "enable"), &VehicleWheel::set_use_as_traction);
-	ClassDB::bind_method(D_METHOD("is_used_as_traction"), &VehicleWheel::is_used_as_traction);
-
-	ClassDB::bind_method(D_METHOD("set_use_as_steering", "enable"), &VehicleWheel::set_use_as_steering);
-	ClassDB::bind_method(D_METHOD("is_used_as_steering"), &VehicleWheel::is_used_as_steering);
-
-	ClassDB::bind_method(D_METHOD("set_use_as_brake", "enable"), &VehicleWheel::set_use_as_brake);
-	ClassDB::bind_method(D_METHOD("is_used_as_brake"), &VehicleWheel::is_used_as_brake);
-
 	ClassDB::bind_method(D_METHOD("set_friction_slip", "length"), &VehicleWheel::set_friction_slip);
 	ClassDB::bind_method(D_METHOD("get_friction_slip"), &VehicleWheel::get_friction_slip);
 
@@ -273,9 +306,10 @@ void VehicleWheel::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_skidinfo"), &VehicleWheel::get_skidinfo);
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_as_traction"), "set_use_as_traction", "is_used_as_traction");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_as_steering"), "set_use_as_steering", "is_used_as_steering");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_as_brake"), "set_use_as_brake", "is_used_as_brake");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "engine_force", PROPERTY_HINT_RANGE, "-65536.0,65536.0,0.1"), "set_engine_force", "get_engine_force");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "brake", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_brake", "get_brake");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "steering", PROPERTY_HINT_RANGE, "-3.1415,3.1415,0.0001"), "set_steering", "get_steering");
+
 	ADD_GROUP("Wheel", "wheel_");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_roll_influence"), "set_roll_influence", "get_roll_influence");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_radius"), "set_radius", "get_radius");
@@ -290,49 +324,10 @@ void VehicleWheel::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "damping_relaxation"), "set_damping_relaxation", "get_damping_relaxation");
 }
 
-void VehicleWheel::set_use_as_traction(bool p_enable) {
-
-	engine_traction = p_enable;
-}
-
-bool VehicleWheel::is_used_as_traction() const {
-
-	return engine_traction;
-}
-
-void VehicleWheel::set_use_as_steering(bool p_enabled) {
-
-	steers = p_enabled;
-}
-
-bool VehicleWheel::is_used_as_steering() const {
-
-	return steers;
-}
-
-void VehicleWheel::set_use_as_brake(bool p_enable) {
-
-	can_brake = p_enable;
-}
-
-bool VehicleWheel::is_used_as_brake() const {
-
-	return can_brake;
-}
-
-float VehicleWheel::get_skidinfo() const {
-
-	return m_skidInfo;
-}
-
 VehicleWheel::VehicleWheel() {
 
-	steers = false;
-	engine_traction = false;
-	can_brake = false;
-
 	m_steering = real_t(0.);
-	//m_engineForce = real_t(0.);
+	m_engineForce = real_t(0.);
 	m_rotation = real_t(0.);
 	m_deltaRotation = real_t(0.);
 	m_brake = real_t(0.);
@@ -383,7 +378,7 @@ void VehicleBody::_update_wheel(int p_idx, PhysicsDirectBodyState *s) {
 	fwd = fwd.normalized();
 
 	//rotate around steering over de wheelAxleWS
-	real_t steering = wheel.steers ? m_steeringValue : 0.0;
+	real_t steering = wheel.m_steering;
 
 	Basis steeringMat(up, steering);
 
@@ -668,6 +663,7 @@ real_t VehicleBody::_calc_rolling_friction(btVehicleWheelContactPoint &contactPo
 }
 
 static const real_t sideFrictionStiffness2 = real_t(1.0);
+
 void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 
 	//calculate the impulse, so that the wheels don't move sidewards
@@ -680,144 +676,110 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 	m_forwardImpulse.resize(numWheel);
 	m_sideImpulse.resize(numWheel);
 
-	//collapse all those loops into one!
-	for (int i = 0; i < wheels.size(); i++) {
-		m_sideImpulse.write[i] = real_t(0.);
-		m_forwardImpulse.write[i] = real_t(0.);
-	}
-
-	{
-
-		for (int i = 0; i < wheels.size(); i++) {
-
-			VehicleWheel &wheelInfo = *wheels[i];
-
-			if (wheelInfo.m_raycastInfo.m_isInContact) {
-
-				//const btTransform& wheelTrans = getWheelTransformWS( i );
-
-				Basis wheelBasis0 = wheelInfo.m_worldTransform.basis; //get_global_transform().basis;
-
-				m_axle.write[i] = wheelBasis0.get_axis(Vector3::AXIS_X);
-				//m_axle[i] = wheelInfo.m_raycastInfo.m_wheelAxleWS;
-
-				const Vector3 &surfNormalWS = wheelInfo.m_raycastInfo.m_contactNormalWS;
-				real_t proj = m_axle[i].dot(surfNormalWS);
-				m_axle.write[i] -= surfNormalWS * proj;
-				m_axle.write[i] = m_axle[i].normalized();
-
-				m_forwardWS.write[i] = surfNormalWS.cross(m_axle[i]);
-				m_forwardWS.write[i].normalize();
-
-				_resolve_single_bilateral(s, wheelInfo.m_raycastInfo.m_contactPointWS,
-						wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS,
-						m_axle[i], m_sideImpulse.write[i], wheelInfo.m_rollInfluence);
-
-				m_sideImpulse.write[i] *= sideFrictionStiffness2;
-			}
-		}
-	}
-
 	real_t sideFactor = real_t(1.);
 	real_t fwdFactor = 0.5;
 
 	bool sliding = false;
-	{
-		for (int wheel = 0; wheel < wheels.size(); wheel++) {
-			VehicleWheel &wheelInfo = *wheels[wheel];
 
-			//class btRigidBody* groundObject = (class btRigidBody*) wheelInfo.m_raycastInfo.m_groundObject;
+	//collapse all those loops into one!
+	for (int wheel = 0; wheel < wheels.size(); wheel++) {
+		m_sideImpulse.write[wheel] = real_t(0.);
+		m_forwardImpulse.write[wheel] = real_t(0.);
 
+
+		VehicleWheel &wheelInfo = *wheels[wheel];
+
+		if (wheelInfo.m_raycastInfo.m_isInContact) {
+			// Apply m_axle
+			Basis wheelBasis0 = wheelInfo.m_worldTransform.basis; 
+
+			m_axle.write[wheel] = wheelBasis0.get_axis(Vector3::AXIS_X);
+
+			const Vector3 &surfNormalWS = wheelInfo.m_raycastInfo.m_contactNormalWS;
+			real_t proj = m_axle[wheel].dot(surfNormalWS);
+			m_axle.write[wheel] -= surfNormalWS * proj;
+			m_axle.write[wheel].normalize();
+
+			m_forwardWS.write[wheel] = surfNormalWS.cross(m_axle[wheel]);
+			m_forwardWS.write[wheel].normalize();
+
+			_resolve_single_bilateral(s, wheelInfo.m_raycastInfo.m_contactPointWS,
+					wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS,
+					m_axle[wheel], m_sideImpulse.write[wheel], wheelInfo.m_rollInfluence);
+
+			// ???
+			m_sideImpulse.write[wheel] *= sideFrictionStiffness2; // == 0
+
+			//Apply rolling friction
 			real_t rollingFriction = 0.f;
 
-			if (wheelInfo.m_raycastInfo.m_isInContact) {
-				if (engine_force != 0.f && wheelInfo.engine_traction) {
-					rollingFriction += -engine_force * s->get_step();
-				}
-				if (brake != 0.f && wheelInfo.can_brake) {
-					real_t defaultRollingFrictionImpulse = 0.f;
-					float cbrake = MAX(wheelInfo.m_brake, brake);
-					real_t maxImpulse = cbrake ? cbrake : defaultRollingFrictionImpulse;
-					btVehicleWheelContactPoint contactPt(s, wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS, m_forwardWS[wheel], maxImpulse);
-					rollingFriction += _calc_rolling_friction(contactPt);
-				}
+			if (wheelInfo.m_engineForce != 0.f) {
+				rollingFriction += -wheelInfo.m_engineForce * s->get_step();
 			}
 
-			//switch between active rolling (throttle), braking and non-active rolling friction (no throttle/break)
+			if (wheelInfo.m_brake != 0.f) {
+				real_t defaultRollingFrictionImpulse = 0.f;
+				real_t maxImpulse = wheelInfo.m_brake ? wheelInfo.m_brake : defaultRollingFrictionImpulse;
+				btVehicleWheelContactPoint contactPt(s, wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS, m_forwardWS[wheel], maxImpulse);
+				rollingFriction += _calc_rolling_friction(contactPt);
+			}
 
-			m_forwardImpulse.write[wheel] = real_t(0.);
+			// RESULT
 			wheelInfo.m_skidInfo = real_t(1.);
 
-			if (wheelInfo.m_raycastInfo.m_isInContact) {
-				wheelInfo.m_skidInfo = real_t(1.);
+			real_t maximp = wheelInfo.m_wheelsSuspensionForce * wheelInfo.m_frictionSlip * s->get_step();
+			real_t maximpSquared = maximp * maximp;
 
-				real_t maximp = wheelInfo.m_wheelsSuspensionForce * s->get_step() * wheelInfo.m_frictionSlip;
-				real_t maximpSide = maximp;
+			m_forwardImpulse.write[wheel] = rollingFriction; //wheelInfo.m_engineForce* timeStep;
+			//m_sideImpulse.write[wheel] = maximp;
 
-				real_t maximpSquared = maximp * maximpSide;
+			real_t x = (m_forwardImpulse[wheel]) * fwdFactor;
+			real_t y = (m_sideImpulse[wheel]) * sideFactor;
 
-				m_forwardImpulse.write[wheel] = rollingFriction; //wheelInfo.m_engineForce* timeStep;
+			real_t impulseSquared = (x * x + y * y);
 
-				real_t x = (m_forwardImpulse[wheel]) * fwdFactor;
-				real_t y = (m_sideImpulse[wheel]) * sideFactor;
+			if (impulseSquared > maximpSquared) {
+				sliding = true;
 
-				real_t impulseSquared = (x * x + y * y);
+				real_t factor = maximp / Math::sqrt(impulseSquared);
 
-				if (impulseSquared > maximpSquared) {
-					sliding = true;
+				wheelInfo.m_skidInfo *= factor;
 
-					real_t factor = maximp / Math::sqrt(impulseSquared);
-
-					wheelInfo.m_skidInfo *= factor;
+				if (m_sideImpulse[wheel] != real_t(0.)) {
+					if (wheels[wheel]->m_skidInfo < real_t(1.)) {
+						m_forwardImpulse.write[wheel] *= wheels[wheel]->m_skidInfo;
+						m_sideImpulse.write[wheel] *= wheels[wheel]->m_skidInfo;
+					}
 				}
 			}
 		}
-	}
 
-	if (sliding) {
-		for (int wheel = 0; wheel < wheels.size(); wheel++) {
-			if (m_sideImpulse[wheel] != real_t(0.)) {
-				if (wheels[wheel]->m_skidInfo < real_t(1.)) {
-					m_forwardImpulse.write[wheel] *= wheels[wheel]->m_skidInfo;
-					m_sideImpulse.write[wheel] *= wheels[wheel]->m_skidInfo;
-				}
-			}
+		// apply the impulses
+
+		Vector3 rel_pos = wheelInfo.m_raycastInfo.m_contactPointWS -
+							s->get_transform().origin;
+
+		if (m_forwardImpulse[wheel] != real_t(0.)) {
+			s->apply_impulse(rel_pos, m_forwardWS[wheel] * (m_forwardImpulse[wheel]));
 		}
-	}
 
-	// apply the impulses
-	{
-		for (int wheel = 0; wheel < wheels.size(); wheel++) {
-			VehicleWheel &wheelInfo = *wheels[wheel];
+		if (m_sideImpulse[wheel] != real_t(0.)) {
+			PhysicsBody *groundObject = wheelInfo.m_raycastInfo.m_groundObject;
 
-			Vector3 rel_pos = wheelInfo.m_raycastInfo.m_contactPointWS -
-							  s->get_transform().origin;
-
-			if (m_forwardImpulse[wheel] != real_t(0.)) {
-				s->apply_impulse(rel_pos, m_forwardWS[wheel] * (m_forwardImpulse[wheel]));
+			Vector3 rel_pos2;
+			if (groundObject) {
+				rel_pos2 = wheelInfo.m_raycastInfo.m_contactPointWS - groundObject->get_global_transform().origin;
 			}
-			if (m_sideImpulse[wheel] != real_t(0.)) {
-				PhysicsBody *groundObject = wheelInfo.m_raycastInfo.m_groundObject;
 
-				Vector3 rel_pos2;
-				if (groundObject) {
-					rel_pos2 = wheelInfo.m_raycastInfo.m_contactPointWS - groundObject->get_global_transform().origin;
-				}
+			Vector3 sideImp = m_axle[wheel] * m_sideImpulse[wheel];
 
-				Vector3 sideImp = m_axle[wheel] * m_sideImpulse[wheel];
+			Vector3 vChassisWorldUp = s->get_transform().basis.transposed()[1]; //getRigidBody()->getCenterOfMassTransform().getBasis().getColumn(m_indexUpAxis);
+			rel_pos -= vChassisWorldUp * (vChassisWorldUp.dot(rel_pos) * (1.f - wheelInfo.m_rollInfluence));
+			s->apply_impulse(rel_pos, sideImp);
 
-#if defined ROLLING_INFLUENCE_FIX // fix. It only worked if car's up was along Y - VT.
-				Vector3 vChassisWorldUp = s->get_transform().basis.transposed()[1]; //getRigidBody()->getCenterOfMassTransform().getBasis().getColumn(m_indexUpAxis);
-				rel_pos -= vChassisWorldUp * (vChassisWorldUp.dot(rel_pos) * (1.f - wheelInfo.m_rollInfluence));
-#else
-				rel_pos[1] *= wheelInfo.m_rollInfluence; //?
-#endif
-				s->apply_impulse(rel_pos, sideImp);
-
-				//apply friction impulse on the ground
-				//todo
+			//apply friction impulse on the ground
+			//todo
 				//groundObject->applyImpulse(-sideImp,rel_pos2);
-			}
 		}
 	}
 }
@@ -893,60 +855,11 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 	state = NULL;
 }
 
-void VehicleBody::set_engine_force(float p_engine_force) {
-
-	engine_force = p_engine_force;
-}
-
-float VehicleBody::get_engine_force() const {
-
-	return engine_force;
-}
-
-void VehicleBody::set_brake(float p_brake) {
-
-	brake = p_brake;
-}
-float VehicleBody::get_brake() const {
-
-	return brake;
-}
-
-void VehicleBody::set_steering(float p_steering) {
-
-	m_steeringValue = p_steering;
-}
-float VehicleBody::get_steering() const {
-
-	return m_steeringValue;
-}
-
-void VehicleBody::_bind_methods() {
-
-	ClassDB::bind_method(D_METHOD("set_engine_force", "engine_force"), &VehicleBody::set_engine_force);
-	ClassDB::bind_method(D_METHOD("get_engine_force"), &VehicleBody::get_engine_force);
-
-	ClassDB::bind_method(D_METHOD("set_brake", "brake"), &VehicleBody::set_brake);
-	ClassDB::bind_method(D_METHOD("get_brake"), &VehicleBody::get_brake);
-
-	ClassDB::bind_method(D_METHOD("set_steering", "steering"), &VehicleBody::set_steering);
-	ClassDB::bind_method(D_METHOD("get_steering"), &VehicleBody::get_steering);
-
-	ADD_GROUP("Motion", "");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "engine_force", PROPERTY_HINT_RANGE, "0.00,1024.0,0.01,or_greater"), "set_engine_force", "get_engine_force");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "brake", PROPERTY_HINT_RANGE, "0.0,1.0,0.01"), "set_brake", "get_brake");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "steering", PROPERTY_HINT_RANGE, "-180,180.0,0.01"), "set_steering", "get_steering");
-}
-
 VehicleBody::VehicleBody() :
 		RigidBody() {
 
 	m_pitchControl = 0;
 	m_currentVehicleSpeedKmHour = real_t(0.);
-	m_steeringValue = real_t(0.);
-
-	engine_force = 0;
-	brake = 0;
 
 	state = NULL;
 	ccd = false;
