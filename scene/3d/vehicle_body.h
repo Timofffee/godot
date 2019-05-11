@@ -70,7 +70,7 @@ class VehicleWheel : public Spatial {
 	real_t m_rotation;
 	real_t m_deltaRotation;
 	real_t m_rollInfluence;
-	//real_t	m_engineForce;
+	real_t	m_engineForce;
 	real_t m_brake;
 
 	real_t m_clippedInvContactDotSuspension;
@@ -98,6 +98,15 @@ protected:
 	static void _bind_methods();
 
 public:
+	void set_engine_force(float p_length);
+	float get_engine_force() const;
+
+	void set_brake(float p_length);
+	float get_brake() const;
+	
+	void set_steering(float p_length);
+	float get_steering() const;
+
 	void set_radius(float p_radius);
 	float get_radius() const;
 
@@ -147,11 +156,7 @@ class VehicleBody : public RigidBody {
 
 	GDCLASS(VehicleBody, RigidBody);
 
-	float engine_force;
-	float brake;
-
 	real_t m_pitchControl;
-	real_t m_steeringValue;
 	real_t m_currentVehicleSpeedKmHour;
 
 	Set<RID> exclude;
@@ -184,19 +189,9 @@ class VehicleBody : public RigidBody {
 	friend class VehicleWheel;
 	Vector<VehicleWheel *> wheels;
 
-	static void _bind_methods();
-
 	void _direct_state_changed(Object *p_state);
 
 public:
-	void set_engine_force(float p_engine_force);
-	float get_engine_force() const;
-
-	void set_brake(float p_brake);
-	float get_brake() const;
-
-	void set_steering(float p_steering);
-	float get_steering() const;
 
 	VehicleBody();
 };
