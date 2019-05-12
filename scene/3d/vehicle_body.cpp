@@ -61,7 +61,7 @@ public:
 		m_1MinvJt = inertiaInvB * m_bJ;
 		m_Adiag = massInvA + m_0MinvJt.dot(m_aJ) + massInvB + m_1MinvJt.dot(m_bJ);
 
-		//btAssert(m_Adiag > real_t(0.0));
+		//btAssert(m_Adiag > 0.f);
 	}
 
 	real_t getRelativeVelocity(const Vector3 &linvelA, const Vector3 &angvelA, const Vector3 &linvelB, const Vector3 &angvelB) {
@@ -122,11 +122,11 @@ void VehicleWheel::_update(PhysicsDirectBodyState *s) {
 										   (s->get_angular_velocity()).cross(relpos); // * mPos);
 
 		real_t projVel = m_raycastInfo.m_contactNormalWS.dot(chassis_velocity_at_contactPoint);
-		if (project >= real_t(-0.1)) {
-			m_suspensionRelativeVelocity = real_t(0.0);
-			m_clippedInvContactDotSuspension = real_t(1.0) / real_t(0.1);
+		if (project >= -0.1f) {
+			m_suspensionRelativeVelocity = 0.f;
+			m_clippedInvContactDotSuspension = 1.f / 0.1f;
 		} else {
-			real_t inv = real_t(-1.) / project;
+			real_t inv = -1.f / project;
 			m_suspensionRelativeVelocity = projVel * inv;
 			m_clippedInvContactDotSuspension = inv;
 		}
@@ -136,116 +136,36 @@ void VehicleWheel::_update(PhysicsDirectBodyState *s) {
 	else // Not in contact : position wheel in a nice (rest length) position
 	{
 		m_raycastInfo.m_suspensionLength = m_suspensionRestLength;
-		m_suspensionRelativeVelocity = real_t(0.0);
+		m_suspensionRelativeVelocity = 0.f;
 		m_raycastInfo.m_contactNormalWS = -m_raycastInfo.m_wheelDirectionWS;
-		m_clippedInvContactDotSuspension = real_t(1.0);
+		m_clippedInvContactDotSuspension = 1.f;
 	}
 }
 
 void VehicleWheel::set_engine_force(float p_length) {
-
 	m_engineForce = p_length;
 }
 
 float VehicleWheel::get_engine_force() const {
-
 	return m_engineForce;
 }
 
 void VehicleWheel::set_brake(float p_length) {
-
 	m_brake = p_length;
 }
 
 float VehicleWheel::get_brake() const {
-
 	return m_brake;
 }
 
 void VehicleWheel::set_steering(float p_length) {
-
 	m_steering = p_length;
 }
 
 float VehicleWheel::get_steering() const {
-
 	return m_steering;
 }
 
-void VehicleWheel::set_radius(float p_radius) {
-
-	m_wheelRadius = p_radius;
-	update_gizmo();
-}
-
-float VehicleWheel::get_radius() const {
-
-	return m_wheelRadius;
-}
-
-void VehicleWheel::set_suspension_rest_length(float p_length) {
-
-	m_suspensionRestLength = p_length;
-	update_gizmo();
-}
-float VehicleWheel::get_suspension_rest_length() const {
-
-	return m_suspensionRestLength;
-}
-
-void VehicleWheel::set_suspension_travel(float p_length) {
-
-	m_maxSuspensionTravelCm = p_length / 0.01;
-}
-float VehicleWheel::get_suspension_travel() const {
-
-	return m_maxSuspensionTravelCm * 0.01;
-}
-
-void VehicleWheel::set_suspension_stiffness(float p_value) {
-
-	m_suspensionStiffness = p_value;
-}
-float VehicleWheel::get_suspension_stiffness() const {
-
-	return m_suspensionStiffness;
-}
-
-void VehicleWheel::set_suspension_max_force(float p_value) {
-
-	m_maxSuspensionForce = p_value;
-}
-float VehicleWheel::get_suspension_max_force() const {
-
-	return m_maxSuspensionForce;
-}
-
-void VehicleWheel::set_damping_compression(float p_value) {
-
-	m_wheelsDampingCompression = p_value;
-}
-float VehicleWheel::get_damping_compression() const {
-
-	return m_wheelsDampingCompression;
-}
-
-void VehicleWheel::set_damping_relaxation(float p_value) {
-
-	m_wheelsDampingRelaxation = p_value;
-}
-float VehicleWheel::get_damping_relaxation() const {
-
-	return m_wheelsDampingRelaxation;
-}
-
-void VehicleWheel::set_friction_slip(float p_value) {
-
-	m_frictionSlip = p_value;
-}
-float VehicleWheel::get_friction_slip() const {
-
-	return m_frictionSlip;
-}
 
 void VehicleWheel::set_roll_influence(float p_value) {
 	m_rollInfluence = p_value;
@@ -255,14 +175,108 @@ float VehicleWheel::get_roll_influence() const {
 	return m_rollInfluence;
 }
 
+void VehicleWheel::set_radius(float p_radius) {
+	m_wheelRadius = p_radius;
+	update_gizmo();
+}
+
+float VehicleWheel::get_radius() const {
+	return m_wheelRadius;
+}
+
+void VehicleWheel::set_suspension_rest_length(float p_length) {
+	m_suspensionRestLength = p_length;
+	update_gizmo();
+}
+
+float VehicleWheel::get_suspension_rest_length() const {
+	return m_suspensionRestLength;
+}
+
+void VehicleWheel::set_friction_slip(float p_value) {
+	m_frictionSlip = p_value;
+}
+
+float VehicleWheel::get_friction_slip() const {
+	return m_frictionSlip;
+}
+
+
+void VehicleWheel::set_advanced_wheel_enabled(bool p_enabled) {
+	m_advancedWheel = p_enabled;
+	update_gizmo();
+}
+
+bool VehicleWheel::is_advanced_wheel_enabled() const {
+	return m_advancedWheel;
+}
+
+void VehicleWheel::set_ray_count(int p_value) {
+	m_rayCount = p_value;
+	update_gizmo();
+}
+
+int VehicleWheel::get_ray_count() const {
+	return m_rayCount;
+}
+
+void VehicleWheel::set_ray_interval(float p_value) {
+	m_rayInterval = p_value;
+	update_gizmo();
+}
+
+float VehicleWheel::get_ray_interval() const {
+	return m_rayInterval;
+}
+
+
+void VehicleWheel::set_suspension_travel(float p_length) {
+	m_maxSuspensionTravelCm = p_length / 0.01f;
+}
+float VehicleWheel::get_suspension_travel() const {
+	return m_maxSuspensionTravelCm * 0.01f;
+}
+
+void VehicleWheel::set_suspension_stiffness(float p_value) {
+	m_suspensionStiffness = p_value;
+}
+float VehicleWheel::get_suspension_stiffness() const {
+	return m_suspensionStiffness;
+}
+
+void VehicleWheel::set_suspension_max_force(float p_value) {
+	m_maxSuspensionForce = p_value;
+}
+float VehicleWheel::get_suspension_max_force() const {
+	return m_maxSuspensionForce;
+}
+
+
+void VehicleWheel::set_damping_compression(float p_value) {
+	m_wheelsDampingCompression = p_value;
+}
+
+float VehicleWheel::get_damping_compression() const {
+	return m_wheelsDampingCompression;
+}
+
+void VehicleWheel::set_damping_relaxation(float p_value) {
+	m_wheelsDampingRelaxation = p_value;
+}
+
+float VehicleWheel::get_damping_relaxation() const {
+	return m_wheelsDampingRelaxation;
+}
+
+
 bool VehicleWheel::is_in_contact() const {
 	return m_raycastInfo.m_isInContact;
 }
 
 float VehicleWheel::get_skidinfo() const {
-
 	return m_skidInfo;
 }
+
 
 void VehicleWheel::_bind_methods() {
 
@@ -275,11 +289,29 @@ void VehicleWheel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_steering", "length"), &VehicleWheel::set_steering);
 	ClassDB::bind_method(D_METHOD("get_steering"), &VehicleWheel::get_steering);
 
+	
+	ClassDB::bind_method(D_METHOD("set_roll_influence", "roll_influence"), &VehicleWheel::set_roll_influence);
+	ClassDB::bind_method(D_METHOD("get_roll_influence"), &VehicleWheel::get_roll_influence);
+
 	ClassDB::bind_method(D_METHOD("set_radius", "length"), &VehicleWheel::set_radius);
 	ClassDB::bind_method(D_METHOD("get_radius"), &VehicleWheel::get_radius);
 
 	ClassDB::bind_method(D_METHOD("set_suspension_rest_length", "length"), &VehicleWheel::set_suspension_rest_length);
 	ClassDB::bind_method(D_METHOD("get_suspension_rest_length"), &VehicleWheel::get_suspension_rest_length);
+
+	ClassDB::bind_method(D_METHOD("set_friction_slip", "length"), &VehicleWheel::set_friction_slip);
+	ClassDB::bind_method(D_METHOD("get_friction_slip"), &VehicleWheel::get_friction_slip);
+
+
+	ClassDB::bind_method(D_METHOD("set_advanced_wheel_enabled", "enable"), &VehicleWheel::set_advanced_wheel_enabled);
+	ClassDB::bind_method(D_METHOD("is_advanced_wheel_enabled"), &VehicleWheel::is_advanced_wheel_enabled);
+
+	ClassDB::bind_method(D_METHOD("set_ray_count", "count"), &VehicleWheel::set_ray_count);
+	ClassDB::bind_method(D_METHOD("get_ray_count"), &VehicleWheel::get_ray_count);
+
+	ClassDB::bind_method(D_METHOD("set_ray_interval", "interval"), &VehicleWheel::set_ray_interval);
+	ClassDB::bind_method(D_METHOD("get_ray_interval"), &VehicleWheel::get_ray_interval);
+	
 
 	ClassDB::bind_method(D_METHOD("set_suspension_travel", "length"), &VehicleWheel::set_suspension_travel);
 	ClassDB::bind_method(D_METHOD("get_suspension_travel"), &VehicleWheel::get_suspension_travel);
@@ -290,31 +322,30 @@ void VehicleWheel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_suspension_max_force", "length"), &VehicleWheel::set_suspension_max_force);
 	ClassDB::bind_method(D_METHOD("get_suspension_max_force"), &VehicleWheel::get_suspension_max_force);
 
+
 	ClassDB::bind_method(D_METHOD("set_damping_compression", "length"), &VehicleWheel::set_damping_compression);
 	ClassDB::bind_method(D_METHOD("get_damping_compression"), &VehicleWheel::get_damping_compression);
 
 	ClassDB::bind_method(D_METHOD("set_damping_relaxation", "length"), &VehicleWheel::set_damping_relaxation);
 	ClassDB::bind_method(D_METHOD("get_damping_relaxation"), &VehicleWheel::get_damping_relaxation);
-
-	ClassDB::bind_method(D_METHOD("set_friction_slip", "length"), &VehicleWheel::set_friction_slip);
-	ClassDB::bind_method(D_METHOD("get_friction_slip"), &VehicleWheel::get_friction_slip);
+	
 
 	ClassDB::bind_method(D_METHOD("is_in_contact"), &VehicleWheel::is_in_contact);
-
-	ClassDB::bind_method(D_METHOD("set_roll_influence", "roll_influence"), &VehicleWheel::set_roll_influence);
-	ClassDB::bind_method(D_METHOD("get_roll_influence"), &VehicleWheel::get_roll_influence);
 
 	ClassDB::bind_method(D_METHOD("get_skidinfo"), &VehicleWheel::get_skidinfo);
 
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "engine_force", PROPERTY_HINT_RANGE, "-65536.0,65536.0,0.1"), "set_engine_force", "get_engine_force");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "brake", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_brake", "get_brake");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "steering", PROPERTY_HINT_RANGE, "-3.1415,3.1415,0.0001"), "set_steering", "get_steering");
-
 	ADD_GROUP("Wheel", "wheel_");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_roll_influence"), "set_roll_influence", "get_roll_influence");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_radius"), "set_radius", "get_radius");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_rest_length"), "set_suspension_rest_length", "get_suspension_rest_length");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_friction_slip"), "set_friction_slip", "get_friction_slip");
+	ADD_GROUP("Advanced", "advanced_wheel_");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "advanced_wheel_enabled"), "set_advanced_wheel_enabled", "is_advanced_wheel_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "advanced_wheel_ray_count", PROPERTY_HINT_RANGE, "1,128,1"), "set_ray_count", "get_ray_count");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "advanced_wheel_ray_interval", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001"), "set_ray_interval", "get_ray_interval");
 	ADD_GROUP("Suspension", "suspension_");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_travel"), "set_suspension_travel", "get_suspension_travel");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_stiffness"), "set_suspension_stiffness", "get_suspension_stiffness");
@@ -326,25 +357,29 @@ void VehicleWheel::_bind_methods() {
 
 VehicleWheel::VehicleWheel() {
 
-	m_steering = real_t(0.);
-	m_engineForce = real_t(0.);
-	m_rotation = real_t(0.);
-	m_deltaRotation = real_t(0.);
-	m_brake = real_t(0.);
-	m_rollInfluence = real_t(0.1);
+	m_advancedWheel = false;
+	m_rayCount = 1;
+	m_rayInterval = 0.1f;
 
-	m_suspensionRestLength = 0.15;
-	m_wheelRadius = 0.5; //0.28;
-	m_suspensionStiffness = 5.88;
-	m_wheelsDampingCompression = 0.83;
-	m_wheelsDampingRelaxation = 0.88;
-	m_frictionSlip = 10.5;
+	m_steering = 0.f;
+	m_engineForce = 0.f;
+	m_rotation = 0.f;
+	m_deltaRotation = 0.f;
+	m_brake = 0.f;
+	m_rollInfluence = 0.1f;
+
+	m_suspensionRestLength = 0.15f;
+	m_wheelRadius = 0.5f; //0.28;
+	m_suspensionStiffness = 5.88f;
+	m_wheelsDampingCompression = 0.83f;
+	m_wheelsDampingRelaxation = 0.88f;
+	m_frictionSlip = 10.5f;
 	m_bIsFrontWheel = false;
-	m_maxSuspensionTravelCm = 500;
-	m_maxSuspensionForce = 6000;
+	m_maxSuspensionTravelCm = 500.f;
+	m_maxSuspensionForce = 6000.f;
 
-	m_suspensionRelativeVelocity = 0;
-	m_clippedInvContactDotSuspension = 1.0;
+	m_suspensionRelativeVelocity = 0.f;
+	m_clippedInvContactDotSuspension = 1.f;
 	m_raycastInfo.m_isInContact = false;
 
 	body = NULL;
@@ -401,17 +436,42 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 
 	_update_wheel_transform(wheel, s);
 
-	real_t depth = -1;
-
 	real_t raylen = wheel.m_suspensionRestLength + wheel.m_wheelRadius;
+	real_t angle = 0.f;
 
-	Vector3 rayvector = wheel.m_raycastInfo.m_wheelDirectionWS * (raylen);
+	if (wheel.m_advancedWheel && wheel.m_rayCount > 1) {
+		real_t dist = 1.f;
+		real_t half = wheel.m_rayInterval * real_t(wheel.m_rayCount) / 2.f;
+
+		for (real_t ang = -half; ang <= half; ang += wheel.m_rayInterval) {
+			Vector3 rayvector = wheel.m_raycastInfo.m_wheelDirectionWS.rotated(wheel.m_raycastInfo.m_wheelAxleWS, ang) * (raylen);
+			Vector3 source = wheel.m_raycastInfo.m_hardPointWS;
+			const Vector3 &target = source + rayvector;
+
+			real_t param = 0.f;
+			PhysicsDirectSpaceState::RayResult rr;
+
+			PhysicsDirectSpaceState *ss = s->get_space_state();
+			bool col = ss->intersect_ray(source, target, rr, exclude);
+
+			if (col) {
+				real_t _dist = source.distance_to(rr.position) / source.distance_to(target);
+				if (_dist < dist) {
+					dist = _dist;
+					angle = ang;
+				}
+			}
+		}
+	}
+
+	Vector3 rayvector = wheel.m_raycastInfo.m_wheelDirectionWS.rotated(wheel.m_raycastInfo.m_wheelAxleWS, angle) * (raylen);
 	Vector3 source = wheel.m_raycastInfo.m_hardPointWS;
 	wheel.m_raycastInfo.m_contactPointWS = source + rayvector;
 	const Vector3 &target = wheel.m_raycastInfo.m_contactPointWS;
 	source -= wheel.m_wheelRadius * wheel.m_raycastInfo.m_wheelDirectionWS;
 
-	real_t param = real_t(0.);
+	real_t param = 0.f;
+	real_t depth = -1.f;
 
 	PhysicsDirectSpaceState::RayResult rr;
 
@@ -434,8 +494,8 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 		wheel.m_raycastInfo.m_suspensionLength = hitDistance - wheel.m_wheelRadius;
 		//clamp on max suspension travel
 
-		real_t minSuspensionLength = wheel.m_suspensionRestLength - wheel.m_maxSuspensionTravelCm * real_t(0.01);
-		real_t maxSuspensionLength = wheel.m_suspensionRestLength + wheel.m_maxSuspensionTravelCm * real_t(0.01);
+		real_t minSuspensionLength = wheel.m_suspensionRestLength - wheel.m_maxSuspensionTravelCm * 0.01f;
+		real_t maxSuspensionLength = wheel.m_suspensionRestLength + wheel.m_maxSuspensionTravelCm * 0.01f;
 		if (wheel.m_raycastInfo.m_suspensionLength < minSuspensionLength) {
 			wheel.m_raycastInfo.m_suspensionLength = minSuspensionLength;
 		}
@@ -457,11 +517,11 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 
 		real_t projVel = wheel.m_raycastInfo.m_contactNormalWS.dot(chassis_velocity_at_contactPoint);
 
-		if (denominator >= real_t(-0.1)) {
-			wheel.m_suspensionRelativeVelocity = real_t(0.0);
-			wheel.m_clippedInvContactDotSuspension = real_t(1.0) / real_t(0.1);
+		if (denominator >= -0.1f) {
+			wheel.m_suspensionRelativeVelocity = 0.f;
+			wheel.m_clippedInvContactDotSuspension = 1.f / 0.1f;
 		} else {
-			real_t inv = real_t(-1.) / denominator;
+			real_t inv = -1.f / denominator;
 			wheel.m_suspensionRelativeVelocity = projVel * inv;
 			wheel.m_clippedInvContactDotSuspension = inv;
 		}
@@ -470,9 +530,9 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 		wheel.m_raycastInfo.m_isInContact = false;
 		//put wheel info as in rest position
 		wheel.m_raycastInfo.m_suspensionLength = wheel.m_suspensionRestLength;
-		wheel.m_suspensionRelativeVelocity = real_t(0.0);
+		wheel.m_suspensionRelativeVelocity = 0.f;
 		wheel.m_raycastInfo.m_contactNormalWS = -wheel.m_raycastInfo.m_wheelDirectionWS;
-		wheel.m_clippedInvContactDotSuspension = real_t(1.0);
+		wheel.m_clippedInvContactDotSuspension = 1.f;
 	}
 
 	return depth;
@@ -502,7 +562,7 @@ void VehicleBody::_update_suspension(PhysicsDirectBodyState *s) {
 				real_t projected_rel_vel = wheel_info.m_suspensionRelativeVelocity;
 				{
 					real_t susp_damping;
-					if (projected_rel_vel < real_t(0.0)) {
+					if (projected_rel_vel < 0.f) {
 						susp_damping = wheel_info.m_wheelsDampingCompression;
 					} else {
 						susp_damping = wheel_info.m_wheelsDampingRelaxation;
@@ -513,11 +573,11 @@ void VehicleBody::_update_suspension(PhysicsDirectBodyState *s) {
 
 			// RESULT
 			wheel_info.m_wheelsSuspensionForce = force * chassisMass;
-			if (wheel_info.m_wheelsSuspensionForce < real_t(0.)) {
-				wheel_info.m_wheelsSuspensionForce = real_t(0.);
+			if (wheel_info.m_wheelsSuspensionForce < 0.f) {
+				wheel_info.m_wheelsSuspensionForce = 0.f;
 			}
 		} else {
-			wheel_info.m_wheelsSuspensionForce = real_t(0.0);
+			wheel_info.m_wheelsSuspensionForce = 0.f;
 		}
 	}
 }
@@ -529,8 +589,8 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 	real_t normalLenSqr = normal.length_squared();
 	//ERR_FAIL_COND( normalLenSqr < real_t(1.1));
 
-	if (normalLenSqr > real_t(1.1)) {
-		impulse = real_t(0.);
+	if (normalLenSqr > 1.1f) {
+		impulse = 0.f;
 		return;
 	}
 
@@ -549,7 +609,7 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 	Vector3 vel = vel1 - vel2;
 
 	Basis b2trans;
-	float b2invmass = 0;
+	real_t b2invmass = 0.f;
 	Vector3 b2lv;
 	Vector3 b2av;
 	Vector3 b2invinertia; //todo
@@ -587,7 +647,7 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 
 #define ONLY_USE_LINEAR_MASS
 #ifdef ONLY_USE_LINEAR_MASS
-	real_t massTerm = real_t(1.) / ((1.0 / mass) + b2invmass);
+	real_t massTerm = 1.f / ((1.0f / mass) + b2invmass);
 	impulse = -contactDamping * rel_vel * massTerm;
 #else
 	real_t velocityImpulse = -contactDamping * rel_vel * jacDiagABInv;
@@ -601,8 +661,8 @@ VehicleBody::btVehicleWheelContactPoint::btVehicleWheelContactPoint(PhysicsDirec
 		m_frictionPositionWorld(frictionPosWorld),
 		m_frictionDirectionWorld(frictionDirectionWorld),
 		m_maxImpulse(maxImpulse) {
-	float denom0 = 0;
-	float denom1 = 0;
+	float denom0 = 0.f;
+	float denom1 = 0.f;
 
 	{
 		Vector3 r0 = frictionPosWorld - s->get_transform().origin;
@@ -656,7 +716,7 @@ real_t VehicleBody::_calc_rolling_friction(btVehicleWheelContactPoint &contactPo
 	return CLAMP(j1, -maxImpulse, maxImpulse);
 }
 
-static const real_t sideFrictionStiffness2 = real_t(1.0);
+static const real_t sideFrictionStiffness2 = 1.f;
 
 void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 
@@ -670,15 +730,15 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 	m_forwardImpulse.resize(numWheel);
 	m_sideImpulse.resize(numWheel);
 
-	real_t sideFactor = real_t(1.);
-	real_t fwdFactor = 0.5;
+	real_t sideFactor = 1.f;
+	real_t fwdFactor = 0.5f;
 
 	bool sliding = false;
 
 	//collapse all those loops into one!
 	for (int wheel = 0; wheel < wheels.size(); wheel++) {
-		m_sideImpulse.write[wheel] = real_t(0.);
-		m_forwardImpulse.write[wheel] = real_t(0.);
+		m_sideImpulse.write[wheel] = 0.f;
+		m_forwardImpulse.write[wheel] = 0.f;
 
 
 		VehicleWheel &wheelInfo = *wheels[wheel];
@@ -719,7 +779,7 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 			}
 
 			// RESULT
-			wheelInfo.m_skidInfo = real_t(1.);
+			wheelInfo.m_skidInfo = 1.f;
 
 			real_t maximp = wheelInfo.m_wheelsSuspensionForce * wheelInfo.m_frictionSlip * s->get_step();
 			real_t maximpSquared = maximp * maximp;
@@ -739,8 +799,8 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 
 				wheelInfo.m_skidInfo *= factor;
 
-				if (m_sideImpulse[wheel] != real_t(0.)) {
-					if (wheels[wheel]->m_skidInfo < real_t(1.)) {
+				if (m_sideImpulse[wheel] != 0.f) {
+					if (wheels[wheel]->m_skidInfo < 1.f) {
 						m_forwardImpulse.write[wheel] *= wheels[wheel]->m_skidInfo;
 						m_sideImpulse.write[wheel] *= wheels[wheel]->m_skidInfo;
 					}
@@ -753,11 +813,11 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 		Vector3 rel_pos = wheelInfo.m_raycastInfo.m_contactPointWS -
 							s->get_transform().origin;
 
-		if (m_forwardImpulse[wheel] != real_t(0.)) {
+		if (m_forwardImpulse[wheel] != 0.f) {
 			s->apply_impulse(rel_pos, m_forwardWS[wheel] * (m_forwardImpulse[wheel]));
 		}
 
-		if (m_sideImpulse[wheel] != real_t(0.)) {
+		if (m_sideImpulse[wheel] != 0.f) {
 			PhysicsBody *groundObject = wheelInfo.m_raycastInfo.m_groundObject;
 
 			Vector3 rel_pos2;
@@ -843,7 +903,7 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 			wheel.m_rotation += wheel.m_deltaRotation;
 		}
 
-		wheel.m_deltaRotation *= real_t(0.99); //damping of rotation when not in contact
+		wheel.m_deltaRotation *= 0.99f; //damping of rotation when not in contact
 	}
 
 	state = NULL;
@@ -852,8 +912,8 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 VehicleBody::VehicleBody() :
 		RigidBody() {
 
-	m_pitchControl = 0;
-	m_currentVehicleSpeedKmHour = real_t(0.);
+	m_pitchControl = 0.f;
+	m_currentVehicleSpeedKmHour = 0.f;
 
 	state = NULL;
 	ccd = false;

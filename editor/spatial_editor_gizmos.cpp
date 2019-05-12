@@ -2164,6 +2164,23 @@ void VehicleWheelSpatialGizmoPlugin::redraw(EditorSpatialGizmo *p_gizmo) {
 	points.push_back(Vector3(0, -r, r * 2));
 	points.push_back(Vector3(-r * 2 * 0.2, -r, r * 2 * 0.8));
 
+	if (car_wheel->is_advanced_wheel_enabled()) {
+		//return
+		points.push_back(Vector3(0, -r, r * 2));
+		points.push_back(Vector3(0, -r, 0));
+		//draw
+		if (car_wheel->get_ray_count() > 1) {
+			real_t half = car_wheel->get_ray_interval() * real_t(car_wheel->get_ray_count()) / 2.f;
+
+			for (real_t ang = -half; ang <= half; ang += car_wheel->get_ray_interval()) {
+				points.push_back(Vector3(0, 0, 0));
+				points.push_back(Vector3(0, -r, 0).rotated(Vector3(1,0,0), ang));
+			}
+		} else {
+			points.push_back(Vector3(0, 0, 0));
+		}
+	}
+
 	Ref<Material> material = get_material("shape_material", p_gizmo);
 
 	p_gizmo->add_lines(points, material);

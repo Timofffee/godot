@@ -55,6 +55,10 @@ class VehicleWheel : public Spatial {
 	real_t m_maxSuspensionTravelCm;
 	real_t m_wheelRadius;
 
+	bool m_advancedWheel;
+	int m_rayCount;
+	real_t m_rayInterval;
+
 	real_t m_suspensionStiffness;
 	real_t m_wheelsDampingCompression;
 	real_t m_wheelsDampingRelaxation;
@@ -70,7 +74,7 @@ class VehicleWheel : public Spatial {
 	real_t m_rotation;
 	real_t m_deltaRotation;
 	real_t m_rollInfluence;
-	real_t	m_engineForce;
+	real_t m_engineForce;
 	real_t m_brake;
 
 	real_t m_clippedInvContactDotSuspension;
@@ -107,11 +111,26 @@ public:
 	void set_steering(float p_length);
 	float get_steering() const;
 
+	void set_roll_influence(float p_value);
+	float get_roll_influence() const;
+
 	void set_radius(float p_radius);
 	float get_radius() const;
 
 	void set_suspension_rest_length(float p_length);
 	float get_suspension_rest_length() const;
+
+	void set_friction_slip(float p_value);
+	float get_friction_slip() const;
+
+	void set_advanced_wheel_enabled(bool p_enabled);
+	bool is_advanced_wheel_enabled() const;
+
+	void set_ray_count(int p_value);
+	int get_ray_count() const;
+
+	void set_ray_interval(float p_value);
+	float get_ray_interval() const;
 
 	void set_suspension_travel(float p_length);
 	float get_suspension_travel() const;
@@ -128,22 +147,7 @@ public:
 	void set_damping_relaxation(float p_value);
 	float get_damping_relaxation() const;
 
-	void set_friction_slip(float p_value);
-	float get_friction_slip() const;
-
-	void set_use_as_traction(bool p_enable);
-	bool is_used_as_traction() const;
-
-	void set_use_as_steering(bool p_enabled);
-	bool is_used_as_steering() const;
-
-	void set_use_as_brake(bool p_enable);
-	bool is_used_as_brake() const;
-
 	bool is_in_contact() const;
-
-	void set_roll_influence(float p_value);
-	float get_roll_influence() const;
 
 	float get_skidinfo() const;
 
