@@ -55,7 +55,6 @@ class VehicleWheel : public Spatial {
 	real_t m_maxSuspensionTravelCm;
 	real_t m_wheelRadius;
 
-	bool m_advancedWheel;
 	int m_rayCount;
 	real_t m_rayInterval;
 
@@ -122,9 +121,6 @@ public:
 
 	void set_friction_slip(float p_value);
 	float get_friction_slip() const;
-
-	void set_advanced_wheel_enabled(bool p_enabled);
-	bool is_advanced_wheel_enabled() const;
 
 	void set_ray_count(int p_value);
 	int get_ray_count() const;

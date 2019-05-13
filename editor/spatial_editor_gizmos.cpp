@@ -2027,8 +2027,8 @@ PortalSpatialGizmo::PortalSpatialGizmo(Portal *p_portal) {
 
 RayCastSpatialGizmoPlugin::RayCastSpatialGizmoPlugin() {
 
-	Color gizmo_color = EDITOR_DEF("editors/3d_gizmos/gizmo_colors/shape", Color(0.5, 0.7, 1));
-	create_material("shape_material", gizmo_color);
+	Color gizmo_color = EDITOR_DEF("editors/3d_gizmos/gizmo_colors/raycast", Color(0.44, 1.0, 0.69));
+	create_material("raycast_material", gizmo_color);
 }
 
 bool RayCastSpatialGizmoPlugin::has_gizmo(Spatial *p_spatial) {
@@ -2054,7 +2054,7 @@ void RayCastSpatialGizmoPlugin::redraw(EditorSpatialGizmo *p_gizmo) {
 	lines.push_back(Vector3());
 	lines.push_back(raycast->get_cast_to());
 
-	Ref<SpatialMaterial> material = get_material("shape_material", p_gizmo);
+	Ref<SpatialMaterial> material = get_material("raycast_material", p_gizmo);
 
 	p_gizmo->add_lines(lines, material);
 	p_gizmo->add_collision_segments(lines);
@@ -2102,6 +2102,8 @@ VehicleWheelSpatialGizmoPlugin::VehicleWheelSpatialGizmoPlugin() {
 
 	Color gizmo_color = EDITOR_DEF("editors/3d_gizmos/gizmo_colors/shape", Color(0.5, 0.7, 1));
 	create_material("shape_material", gizmo_color);
+	gizmo_color = EDITOR_DEF("editors/3d_gizmos/gizmo_colors/raycast", Color(0.44, 1.0, 0.69));
+	create_material("raycast_material", gizmo_color);
 }
 
 bool VehicleWheelSpatialGizmoPlugin::has_gizmo(Spatial *p_spatial) {
@@ -2164,27 +2166,31 @@ void VehicleWheelSpatialGizmoPlugin::redraw(EditorSpatialGizmo *p_gizmo) {
 	points.push_back(Vector3(0, -r, r * 2));
 	points.push_back(Vector3(-r * 2 * 0.2, -r, r * 2 * 0.8));
 
-	if (car_wheel->is_advanced_wheel_enabled()) {
-		//return
-		points.push_back(Vector3(0, -r, r * 2));
-		points.push_back(Vector3(0, -r, 0));
-		//draw
-		if (car_wheel->get_ray_count() > 1) {
-			real_t half = car_wheel->get_ray_interval() * real_t(car_wheel->get_ray_count()) / 2.f;
-
-			for (real_t ang = -half; ang <= half; ang += car_wheel->get_ray_interval()) {
-				points.push_back(Vector3(0, 0, 0));
-				points.push_back(Vector3(0, -r, 0).rotated(Vector3(1,0,0), ang));
-			}
-		} else {
-			points.push_back(Vector3(0, 0, 0));
-		}
-	}
-
 	Ref<Material> material = get_material("shape_material", p_gizmo);
 
 	p_gizmo->add_lines(points, material);
 	p_gizmo->add_collision_segments(points);
+
+	//raycasts
+	points.clear();
+
+	if (car_wheel->get_ray_count() > 1) {
+		real_t half = car_wheel->get_ray_interval() * real_t(car_wheel->get_ray_count() - 1) / 2.f;
+
+		for (real_t ang = -half; ang <= half; ang += car_wheel->get_ray_interval()) {
+			points.push_back(Vector3(0, -r * 0.9f, 0).rotated(Vector3(1,0,0), ang));
+			points.push_back(Vector3(0, -r, 0).rotated(Vector3(1,0,0), ang));
+		}
+	} else {
+		points.push_back(Vector3(0, -r * 0.9f, 0));
+		points.push_back(Vector3(0, -r, 0));
+	}
+
+	material = get_material("raycast_material", p_gizmo);
+
+	p_gizmo->add_lines(points, material);
+	p_gizmo->add_collision_segments(points);
+	
 }
 
 ///////////

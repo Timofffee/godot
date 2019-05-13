@@ -202,15 +202,6 @@ float VehicleWheel::get_friction_slip() const {
 }
 
 
-void VehicleWheel::set_advanced_wheel_enabled(bool p_enabled) {
-	m_advancedWheel = p_enabled;
-	update_gizmo();
-}
-
-bool VehicleWheel::is_advanced_wheel_enabled() const {
-	return m_advancedWheel;
-}
-
 void VehicleWheel::set_ray_count(int p_value) {
 	m_rayCount = p_value;
 	update_gizmo();
@@ -303,9 +294,6 @@ void VehicleWheel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_friction_slip"), &VehicleWheel::get_friction_slip);
 
 
-	ClassDB::bind_method(D_METHOD("set_advanced_wheel_enabled", "enable"), &VehicleWheel::set_advanced_wheel_enabled);
-	ClassDB::bind_method(D_METHOD("is_advanced_wheel_enabled"), &VehicleWheel::is_advanced_wheel_enabled);
-
 	ClassDB::bind_method(D_METHOD("set_ray_count", "count"), &VehicleWheel::set_ray_count);
 	ClassDB::bind_method(D_METHOD("get_ray_count"), &VehicleWheel::get_ray_count);
 
@@ -342,10 +330,9 @@ void VehicleWheel::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_radius"), "set_radius", "get_radius");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_rest_length"), "set_suspension_rest_length", "get_suspension_rest_length");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_friction_slip"), "set_friction_slip", "get_friction_slip");
-	ADD_GROUP("Advanced", "advanced_wheel_");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "advanced_wheel_enabled"), "set_advanced_wheel_enabled", "is_advanced_wheel_enabled");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "advanced_wheel_ray_count", PROPERTY_HINT_RANGE, "1,128,1"), "set_ray_count", "get_ray_count");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "advanced_wheel_ray_interval", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001"), "set_ray_interval", "get_ray_interval");
+	ADD_GROUP("Ray", "ray_");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "ray_count", PROPERTY_HINT_RANGE, "1,128,1"), "set_ray_count", "get_ray_count");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "ray_interval", PROPERTY_HINT_RANGE, "0.0001,1.0,0.0001"), "set_ray_interval", "get_ray_interval");
 	ADD_GROUP("Suspension", "suspension_");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_travel"), "set_suspension_travel", "get_suspension_travel");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_stiffness"), "set_suspension_stiffness", "get_suspension_stiffness");
@@ -357,7 +344,6 @@ void VehicleWheel::_bind_methods() {
 
 VehicleWheel::VehicleWheel() {
 
-	m_advancedWheel = false;
 	m_rayCount = 1;
 	m_rayInterval = 0.1f;
 
@@ -439,9 +425,9 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 	real_t raylen = wheel.m_suspensionRestLength + wheel.m_wheelRadius;
 	real_t angle = 0.f;
 
-	if (wheel.m_advancedWheel && wheel.m_rayCount > 1) {
+	if (wheel.m_rayCount > 1) {
 		real_t dist = 1.f;
-		real_t half = wheel.m_rayInterval * real_t(wheel.m_rayCount) / 2.f;
+		real_t half = wheel.m_rayInterval * real_t(wheel.m_rayCount - 1) / 2.f;
 
 		for (real_t ang = -half; ang <= half; ang += wheel.m_rayInterval) {
 			Vector3 rayvector = wheel.m_raycastInfo.m_wheelDirectionWS.rotated(wheel.m_raycastInfo.m_wheelAxleWS, ang) * (raylen);
