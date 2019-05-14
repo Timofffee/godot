@@ -159,6 +159,12 @@ class VehicleBody : public RigidBody {
 	real_t m_pitchControl;
 	real_t m_currentVehicleSpeedKmHour;
 
+
+	Vector3 m_center_of_mass;
+	ObjectID id_center_of_mass;
+	NodePath center_of_mass;
+
+
 	Set<RID> exclude;
 
 	Vector<Vector3> m_forwardWS;
@@ -177,6 +183,9 @@ class VehicleBody : public RigidBody {
 		btVehicleWheelContactPoint(PhysicsDirectBodyState *s, PhysicsBody *body1, const Vector3 &frictionPosWorld, const Vector3 &frictionDirectionWorld, real_t maxImpulse);
 	};
 
+	void _update_center_of_mass_node();
+	void _update_center_of_mass_position();
+
 	void _resolve_single_bilateral(PhysicsDirectBodyState *s, const Vector3 &pos1, PhysicsBody *body2, const Vector3 &pos2, const Vector3 &normal, real_t &impulse, const real_t p_rollInfluence);
 	real_t _calc_rolling_friction(btVehicleWheelContactPoint &contactPoint);
 
@@ -191,7 +200,14 @@ class VehicleBody : public RigidBody {
 
 	void _direct_state_changed(Object *p_state);
 
+protected:
+	void _notification(int p_what);
+	static void _bind_methods();
+
 public:
+
+	void set_center_of_mass_node(const NodePath &p_center_of_mass);
+	NodePath get_center_of_mass_node() const;
 
 	VehicleBody();
 };

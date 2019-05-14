@@ -499,7 +499,7 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 		//chassis_velocity_at_contactPoint = getRigidBody()->getVelocityInLocalPoint(relpos);
 
 		chassis_velocity_at_contactPoint = s->get_linear_velocity() +
-										   (s->get_angular_velocity()).cross(wheel.m_raycastInfo.m_contactPointWS - s->get_transform().origin); // * mPos);
+										   (s->get_angular_velocity()).cross(wheel.m_raycastInfo.m_contactPointWS - wheel.body->m_center_of_mass); // * mPos);
 
 		real_t projVel = wheel.m_raycastInfo.m_contactNormalWS.dot(chassis_velocity_at_contactPoint);
 
@@ -837,6 +837,8 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 		_update_wheel(i, state);
 	}
 
+	_update_center_of_mass_position();
+
 	for (int i = 0; i < wheels.size(); i++) {
 
 		_ray_cast(i, state);
@@ -856,7 +858,7 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 			suspensionForce = wheel.m_maxSuspensionForce;
 		}
 		Vector3 impulse = wheel.m_raycastInfo.m_contactNormalWS * suspensionForce * step;
-		Vector3 relpos = wheel.m_raycastInfo.m_contactPointWS - state->get_transform().origin;
+		Vector3 relpos = wheel.m_raycastInfo.m_contactPointWS - wheel.body->m_center_of_mass;
 
 		state->apply_impulse(relpos, impulse);
 		//getRigidBody()->applyImpulse(impulse, relpos);
@@ -866,7 +868,7 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 
 	for (int i = 0; i < wheels.size(); i++) {
 		VehicleWheel &wheel = *wheels[i];
-		Vector3 relpos = wheel.m_raycastInfo.m_hardPointWS - state->get_transform().origin;
+		Vector3 relpos = wheel.m_raycastInfo.m_hardPointWS - wheel.body->m_center_of_mass;
 		Vector3 vel = state->get_linear_velocity() + (state->get_angular_velocity()).cross(relpos); // * mPos);
 
 		if (wheel.m_raycastInfo.m_isInContact) {
@@ -895,11 +897,52 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 	state = NULL;
 }
 
+
+void VehicleBody::_notification(int p_what) {
+
+	if (p_what == NOTIFICATION_READY) {
+		_update_center_of_mass_node();
+	}
+}
+
+
+void VehicleBody::set_center_of_mass_node(const NodePath &p_center_of_mass) {
+
+	if (center_of_mass == p_center_of_mass)
+		return;
+
+	center_of_mass = p_center_of_mass;
+	
+	if (is_inside_tree()) {
+		_update_center_of_mass_node();
+		_update_center_of_mass_position();
+	}
+}
+
+NodePath VehicleBody::get_center_of_mass_node() const {
+
+	return center_of_mass;
+}
+
+
+void VehicleBody::_bind_methods() {
+
+	ClassDB::bind_method(D_METHOD("set_center_of_mass_node", "node"), &VehicleBody::set_center_of_mass_node);
+	ClassDB::bind_method(D_METHOD("get_center_of_mass_node"), &VehicleBody::get_center_of_mass_node);
+
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "center_of_mass", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_center_of_mass_node", "get_center_of_mass_node");
+
+}
+
+
 VehicleBody::VehicleBody() :
 		RigidBody() {
 
 	m_pitchControl = 0.f;
 	m_currentVehicleSpeedKmHour = 0.f;
+
+	m_center_of_mass = Vector3(0.f, 0.f, 0.f);
+	id_center_of_mass = 0;
 
 	state = NULL;
 	ccd = false;
@@ -909,3 +952,40 @@ VehicleBody::VehicleBody() :
 
 	set_mass(40);
 }
+
+
+void VehicleBody::_update_center_of_mass_node() {
+	print_line(String(center_of_mass));
+	id_center_of_mass = 0;
+	if (has_node(center_of_mass)) {
+		Node *node = get_node(center_of_mass);
+		if (!node || this == node) {
+			return;
+		}
+
+		id_center_of_mass = node->get_instance_id();
+	} 
+}
+
+
+void VehicleBody::_update_center_of_mass_position() {
+	
+	if (!is_inside_tree()) {
+		return;
+	}
+
+	if (!id_center_of_mass) {
+		m_center_of_mass = get_global_transform().origin;
+		return;
+	}
+
+	Spatial *n = Object::cast_to<Spatial>(ObjectDB::get_instance(id_center_of_mass));
+	if (!n || !n->is_inside_tree()) {
+		m_center_of_mass = get_global_transform().origin;
+		return;
+	}
+
+	m_center_of_mass = n->get_global_transform().origin;
+}
+
+
