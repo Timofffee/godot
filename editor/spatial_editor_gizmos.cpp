@@ -2177,7 +2177,8 @@ void VehicleWheelSpatialGizmoPlugin::redraw(EditorSpatialGizmo *p_gizmo) {
 	if (car_wheel->get_ray_count() > 1) {
 		real_t half = car_wheel->get_ray_interval() * real_t(car_wheel->get_ray_count() - 1) / 2.f;
 
-		for (real_t ang = -half; ang <= half; ang += car_wheel->get_ray_interval()) {
+		for (int cnt = 0; cnt < car_wheel->get_ray_count(); cnt++) {
+			real_t ang = car_wheel->get_ray_interval() * cnt - half;
 			points.push_back(Vector3(0, -r * 0.9f, 0).rotated(Vector3(1,0,0), ang));
 			points.push_back(Vector3(0, -r, 0).rotated(Vector3(1,0,0), ang));
 		}

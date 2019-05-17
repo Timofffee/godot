@@ -326,20 +326,20 @@ void VehicleWheel::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "brake", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_brake", "get_brake");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "steering", PROPERTY_HINT_RANGE, "-3.1415,3.1415,0.0001"), "set_steering", "get_steering");
 	ADD_GROUP("Wheel", "wheel_");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_roll_influence"), "set_roll_influence", "get_roll_influence");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_radius"), "set_radius", "get_radius");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_rest_length"), "set_suspension_rest_length", "get_suspension_rest_length");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_friction_slip"), "set_friction_slip", "get_friction_slip");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_roll_influence", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_roll_influence", "get_roll_influence");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_radius", PROPERTY_HINT_RANGE, "0.01,65536.0,0.01"), "set_radius", "get_radius");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_rest_length", PROPERTY_HINT_RANGE, "0.0,65536.0,0.01"), "set_suspension_rest_length", "get_suspension_rest_length");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_friction_slip", PROPERTY_HINT_RANGE, "0.0,65536.0,0.01"), "set_friction_slip", "get_friction_slip");
 	ADD_GROUP("Ray", "ray_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "ray_count", PROPERTY_HINT_RANGE, "1,128,1"), "set_ray_count", "get_ray_count");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "ray_interval", PROPERTY_HINT_RANGE, "0.0001,1.0,0.0001"), "set_ray_interval", "get_ray_interval");
 	ADD_GROUP("Suspension", "suspension_");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_travel"), "set_suspension_travel", "get_suspension_travel");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_stiffness"), "set_suspension_stiffness", "get_suspension_stiffness");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_travel", PROPERTY_HINT_RANGE, "0.0,65536.0,0.01"), "set_suspension_travel", "get_suspension_travel");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_stiffness", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_suspension_stiffness", "get_suspension_stiffness");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suspension_max_force"), "set_suspension_max_force", "get_suspension_max_force");
 	ADD_GROUP("Damping", "damping_");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "damping_compression"), "set_damping_compression", "get_damping_compression");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "damping_relaxation"), "set_damping_relaxation", "get_damping_relaxation");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "damping_compression", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_damping_compression", "get_damping_compression");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "damping_relaxation", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_damping_relaxation", "get_damping_relaxation");
 }
 
 VehicleWheel::VehicleWheel() {
@@ -355,13 +355,12 @@ VehicleWheel::VehicleWheel() {
 	m_rollInfluence = 0.1f;
 
 	m_suspensionRestLength = 0.15f;
-	m_wheelRadius = 0.5f; //0.28;
+	m_wheelRadius = 0.5f;
 	m_suspensionStiffness = 5.88f;
-	m_wheelsDampingCompression = 0.83f;
-	m_wheelsDampingRelaxation = 0.88f;
-	m_frictionSlip = 10.5f;
-	m_bIsFrontWheel = false;
-	m_maxSuspensionTravelCm = 500.f;
+	m_wheelsDampingCompression = 0.5f;
+	m_wheelsDampingRelaxation = 0.6f;
+	m_frictionSlip = 1.0f;
+	m_maxSuspensionTravelCm = 20.f;
 	m_maxSuspensionForce = 6000.f;
 
 	m_suspensionRelativeVelocity = 0.f;
@@ -398,10 +397,7 @@ void VehicleBody::_update_wheel(int p_idx, PhysicsDirectBodyState *s) {
 	Vector3 fwd = up.cross(right);
 	fwd = fwd.normalized();
 
-	//rotate around steering over de wheelAxleWS
-	real_t steering = wheel.m_steering;
-
-	Basis steeringMat(up, steering);
+	Basis steeringMat(up, wheel.m_steering);
 
 	Basis rotatingMat(right, wheel.m_rotation);
 
@@ -429,7 +425,8 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 		real_t dist = 1.f;
 		real_t half = wheel.m_rayInterval * real_t(wheel.m_rayCount - 1) / 2.f;
 
-		for (real_t ang = -half; ang <= half; ang += wheel.m_rayInterval) {
+		for (int cnt = 0; cnt < wheel.m_rayCount; cnt++) {
+			real_t ang = wheel.m_rayInterval * cnt - half;
 			Vector3 rayvector = wheel.m_raycastInfo.m_wheelDirectionWS.rotated(wheel.m_raycastInfo.m_wheelAxleWS, ang) * (raylen);
 			Vector3 source = wheel.m_raycastInfo.m_hardPointWS;
 			const Vector3 &target = source + rayvector;
@@ -580,13 +577,13 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 		return;
 	}
 
-	Vector3 rel_pos1 = pos1 - s->get_transform().origin;
+	Vector3 rel_pos1 = pos1 - s->get_center_of_mass();
 	Vector3 rel_pos2;
 	if (body2)
 		rel_pos2 = pos2 - body2->get_global_transform().origin;
 	//this jacobian entry could be re-used for all iterations
 
-	Vector3 vel1 = s->get_linear_velocity() + (s->get_angular_velocity()).cross(rel_pos1); // * mPos);
+	Vector3 vel1 = s->get_linear_velocity() + (s->get_angular_velocity()).cross(rel_pos1);
 	Vector3 vel2;
 
 	if (body2)
@@ -617,7 +614,7 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 			b2invinertia,
 			b2invmass);
 
-	// FIXME: rel_vel assignment here is overwritten by the following assignment.
+	//FIXME rel_vel assignment here is overwritten by the following assignment.
 	// What seems to be intended in the next next assignment is: rel_vel = normal.dot(rel_vel);
 	// Investigate why.
 	real_t rel_vel = jac.getRelativeVelocity(
@@ -636,6 +633,7 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 	real_t massTerm = 1.f / ((1.0f / mass) + b2invmass);
 	impulse = -contactDamping * rel_vel * massTerm;
 #else
+	//FIXME Never used and uses a nonexistent variable.
 	real_t velocityImpulse = -contactDamping * rel_vel * jacDiagABInv;
 	impulse = velocityImpulse;
 #endif
@@ -657,16 +655,12 @@ VehicleBody::btVehicleWheelContactPoint::btVehicleWheelContactPoint(PhysicsDirec
 		denom0 = s->get_inverse_mass() + frictionDirectionWorld.dot(vec);
 	}
 
-	/* TODO: Why is this code unused?
 	if (body1) {
-
 		Vector3 r0 = frictionPosWorld - body1->get_global_transform().origin;
 		Vector3 c0 = (r0).cross(frictionDirectionWorld);
 		Vector3 vec = s->get_inverse_inertia_tensor().xform_inv(c0).cross(r0);
-		//denom1= body1->get_inverse_mass() + frictionDirectionWorld.dot(vec);
-
+		denom1 = body1->get_inverse_mass() + frictionDirectionWorld.dot(vec);
 	}
-	*/
 
 	real_t relaxation = 1.f;
 	m_jacDiagABInv = relaxation / (denom0 + denom1);
@@ -678,7 +672,7 @@ real_t VehicleBody::_calc_rolling_friction(btVehicleWheelContactPoint &contactPo
 
 	const Vector3 &contactPosWorld = contactPoint.m_frictionPositionWorld;
 
-	Vector3 rel_pos1 = contactPosWorld - contactPoint.m_s->get_transform().origin;
+	Vector3 rel_pos1 = contactPosWorld - contactPoint.m_s->get_center_of_mass();
 	Vector3 rel_pos2;
 	if (contactPoint.m_body1)
 		rel_pos2 = contactPosWorld - contactPoint.m_body1->get_global_transform().origin;
@@ -747,8 +741,7 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 					wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS,
 					m_axle[wheel], m_sideImpulse.write[wheel], wheelInfo.m_rollInfluence);
 
-			// ???
-			m_sideImpulse.write[wheel] *= sideFrictionStiffness2; // == 0
+			m_sideImpulse.write[wheel] *= sideFrictionStiffness2;
 
 			//Apply rolling friction
 			real_t rollingFriction = 0.f;
@@ -757,7 +750,8 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 				rollingFriction += -wheelInfo.m_engineForce * s->get_step();
 			}
 
-			if (wheelInfo.m_brake != 0.f) {
+			// if (wheelInfo.m_brake != 0.f) {
+			{
 				real_t defaultRollingFrictionImpulse = 0.f;
 				real_t maxImpulse = wheelInfo.m_brake ? wheelInfo.m_brake : defaultRollingFrictionImpulse;
 				btVehicleWheelContactPoint contactPt(s, wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS, m_forwardWS[wheel], maxImpulse);
@@ -906,7 +900,7 @@ void VehicleBody::_notification(int p_what) {
 }
 
 
-void VehicleBody::set_center_of_mass_node(const NodePath &p_center_of_mass) {
+void VehicleBody::set_center_of_mass(const NodePath &p_center_of_mass) {
 
 	if (center_of_mass == p_center_of_mass)
 		return;
@@ -919,7 +913,7 @@ void VehicleBody::set_center_of_mass_node(const NodePath &p_center_of_mass) {
 	}
 }
 
-NodePath VehicleBody::get_center_of_mass_node() const {
+NodePath VehicleBody::get_center_of_mass() const {
 
 	return center_of_mass;
 }
@@ -927,10 +921,10 @@ NodePath VehicleBody::get_center_of_mass_node() const {
 
 void VehicleBody::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_center_of_mass_node", "node"), &VehicleBody::set_center_of_mass_node);
-	ClassDB::bind_method(D_METHOD("get_center_of_mass_node"), &VehicleBody::get_center_of_mass_node);
+	ClassDB::bind_method(D_METHOD("set_center_of_mass", "node"), &VehicleBody::set_center_of_mass);
+	ClassDB::bind_method(D_METHOD("get_center_of_mass"), &VehicleBody::get_center_of_mass);
 
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "center_of_mass", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_center_of_mass_node", "get_center_of_mass_node");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "center_of_mass", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_center_of_mass", "get_center_of_mass");
 
 }
 
@@ -941,7 +935,7 @@ VehicleBody::VehicleBody() :
 	m_pitchControl = 0.f;
 	m_currentVehicleSpeedKmHour = 0.f;
 
-	m_center_of_mass = Vector3(0.f, 0.f, 0.f);
+	m_center_of_mass = Vector3();
 	id_center_of_mass = 0;
 
 	state = NULL;
@@ -950,7 +944,7 @@ VehicleBody::VehicleBody() :
 	exclude.insert(get_rid());
 	//PhysicsServer::get_singleton()->body_set_force_integration_callback(get_rid(), this, "_direct_state_changed");
 
-	set_mass(40);
+	set_mass(1000);
 }
 
 

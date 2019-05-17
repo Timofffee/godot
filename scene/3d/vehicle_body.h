@@ -206,8 +206,8 @@ protected:
 
 public:
 
-	void set_center_of_mass_node(const NodePath &p_center_of_mass);
-	NodePath get_center_of_mass_node() const;
+	void set_center_of_mass(const NodePath &p_center_of_mass);
+	NodePath get_center_of_mass() const;
 
 	VehicleBody();
 };
