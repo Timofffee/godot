@@ -60,19 +60,6 @@ public:
 		m_0MinvJt = inertiaInvA * m_aJ;
 		m_1MinvJt = inertiaInvB * m_bJ;
 		m_Adiag = massInvA + m_0MinvJt.dot(m_aJ) + massInvB + m_1MinvJt.dot(m_bJ);
-
-		//btAssert(m_Adiag > 0.f);
-	}
-
-	real_t getRelativeVelocity(const Vector3 &linvelA, const Vector3 &angvelA, const Vector3 &linvelB, const Vector3 &angvelB) {
-		Vector3 linrel = linvelA - linvelB;
-		Vector3 angvela = angvelA * m_aJ;
-		Vector3 angvelb = angvelB * m_bJ;
-		linrel *= m_linearJointAxis;
-		angvela += angvelb;
-		angvela += linrel;
-		real_t rel_vel2 = angvela[0] + angvela[1] + angvela[2];
-		return rel_vel2 + CMP_EPSILON;
 	}
 };
 
@@ -173,6 +160,22 @@ void VehicleWheel::set_roll_influence(float p_value) {
 
 float VehicleWheel::get_roll_influence() const {
 	return m_rollInfluence;
+}
+
+void VehicleWheel::set_contact_damping(float p_value) {
+	m_contactDamping = p_value;
+}
+
+float VehicleWheel::get_contact_damping() const {
+	return m_contactDamping;
+}
+
+void VehicleWheel::set_default_rolling_friction(float p_value) {
+	m_defaultRollingFriction = p_value;
+}
+
+float VehicleWheel::get_default_rolling_friction() const {
+	return m_defaultRollingFriction;
 }
 
 void VehicleWheel::set_radius(float p_radius) {
@@ -284,6 +287,12 @@ void VehicleWheel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_roll_influence", "roll_influence"), &VehicleWheel::set_roll_influence);
 	ClassDB::bind_method(D_METHOD("get_roll_influence"), &VehicleWheel::get_roll_influence);
 
+	ClassDB::bind_method(D_METHOD("set_contact_damping", "contact_damping"), &VehicleWheel::set_contact_damping);
+	ClassDB::bind_method(D_METHOD("get_contact_damping"), &VehicleWheel::get_contact_damping);
+
+	ClassDB::bind_method(D_METHOD("set_default_rolling_friction", "default_rolling_friction"), &VehicleWheel::set_default_rolling_friction);
+	ClassDB::bind_method(D_METHOD("get_default_rolling_friction"), &VehicleWheel::get_default_rolling_friction);
+
 	ClassDB::bind_method(D_METHOD("set_radius", "length"), &VehicleWheel::set_radius);
 	ClassDB::bind_method(D_METHOD("get_radius"), &VehicleWheel::get_radius);
 
@@ -322,12 +331,15 @@ void VehicleWheel::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_skidinfo"), &VehicleWheel::get_skidinfo);
 
+
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "engine_force", PROPERTY_HINT_RANGE, "-65536.0,65536.0,0.1"), "set_engine_force", "get_engine_force");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "brake", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_brake", "get_brake");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "steering", PROPERTY_HINT_RANGE, "-3.1415,3.1415,0.0001"), "set_steering", "get_steering");
 	ADD_GROUP("Wheel", "wheel_");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_roll_influence", PROPERTY_HINT_RANGE, "0.0,65536.0,0.1"), "set_roll_influence", "get_roll_influence");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_radius", PROPERTY_HINT_RANGE, "0.01,65536.0,0.01"), "set_radius", "get_radius");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_contact_damping", PROPERTY_HINT_RANGE, "0.0,65536.0,0.01"), "set_contact_damping", "get_contact_damping");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_default_rolling_friction", PROPERTY_HINT_RANGE, "0.0,65536.0,0.01"), "set_default_rolling_friction", "get_default_rolling_friction");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_rest_length", PROPERTY_HINT_RANGE, "0.0,65536.0,0.01"), "set_suspension_rest_length", "get_suspension_rest_length");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "wheel_friction_slip", PROPERTY_HINT_RANGE, "0.0,65536.0,0.01"), "set_friction_slip", "get_friction_slip");
 	ADD_GROUP("Ray", "ray_");
@@ -353,6 +365,8 @@ VehicleWheel::VehicleWheel() {
 	m_deltaRotation = 0.f;
 	m_brake = 0.f;
 	m_rollInfluence = 0.1f;
+	m_contactDamping = 0.4f;
+	m_defaultRollingFriction = 1.0f;
 
 	m_suspensionRestLength = 0.15f;
 	m_wheelRadius = 0.5f;
@@ -567,7 +581,7 @@ void VehicleBody::_update_suspension(PhysicsDirectBodyState *s) {
 
 //bilateral constraint between two dynamic objects
 void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vector3 &pos1,
-		PhysicsBody *body2, const Vector3 &pos2, const Vector3 &normal, real_t &impulse, const real_t p_rollInfluence) {
+		PhysicsBody *body2, const Vector3 &pos2, const Vector3 &normal, real_t &impulse, const real_t p_rollInfluence, const real_t p_contactDamping) {
 
 	real_t normalLenSqr = normal.length_squared();
 	//ERR_FAIL_COND( normalLenSqr < real_t(1.1));
@@ -604,37 +618,26 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 		b2av = body2->get_angular_velocity();
 	}
 
+	real_t rel_vel = normal.dot(vel);
+	
+#define ONLY_USE_LINEAR_MASS
+#ifdef ONLY_USE_LINEAR_MASS
+	real_t massTerm = 1.f / ((1.f / mass) + b2invmass);
+	impulse = -p_contactDamping * rel_vel * massTerm;
+#else
 	btVehicleJacobianEntry jac(s->get_transform().basis.transposed(),
 			b2trans,
 			rel_pos1,
 			rel_pos2,
 			normal,
 			s->get_inverse_inertia_tensor().get_main_diagonal(),
-			1.0 / mass,
+			1.f / mass,
 			b2invinertia,
 			b2invmass);
 
-	//FIXME rel_vel assignment here is overwritten by the following assignment.
-	// What seems to be intended in the next next assignment is: rel_vel = normal.dot(rel_vel);
-	// Investigate why.
-	real_t rel_vel = jac.getRelativeVelocity(
-			s->get_linear_velocity(),
-			s->get_transform().basis.transposed().xform(s->get_angular_velocity()),
-			b2lv,
-			b2trans.xform(b2av));
+	real_t jacDiagABInv = 1.f / jac.getDiagonal();
 
-	rel_vel = normal.dot(vel);
-
-	// !BAS! We had this set to 0.4, in bullet its 0.2
-	real_t contactDamping = real_t(0.2);
-
-#define ONLY_USE_LINEAR_MASS
-#ifdef ONLY_USE_LINEAR_MASS
-	real_t massTerm = 1.f / ((1.0f / mass) + b2invmass);
-	impulse = -contactDamping * rel_vel * massTerm;
-#else
-	//FIXME Never used and uses a nonexistent variable.
-	real_t velocityImpulse = -contactDamping * rel_vel * jacDiagABInv;
+	real_t velocityImpulse = -p_contactDamping * rel_vel * jacDiagABInv;
 	impulse = velocityImpulse;
 #endif
 }
@@ -739,7 +742,7 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 
 			_resolve_single_bilateral(s, wheelInfo.m_raycastInfo.m_contactPointWS,
 					wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS,
-					m_axle[wheel], m_sideImpulse.write[wheel], wheelInfo.m_rollInfluence);
+					m_axle[wheel], m_sideImpulse.write[wheel], wheelInfo.m_rollInfluence, wheelInfo.m_contactDamping);
 
 			m_sideImpulse.write[wheel] *= sideFrictionStiffness2;
 
@@ -752,8 +755,8 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 
 			// if (wheelInfo.m_brake != 0.f) {
 			{
-				real_t defaultRollingFrictionImpulse = 0.f;
-				real_t maxImpulse = wheelInfo.m_brake ? wheelInfo.m_brake : defaultRollingFrictionImpulse;
+				real_t defaultRollingFrictionImpulse = wheelInfo.m_defaultRollingFriction;
+				real_t maxImpulse = (wheelInfo.m_brake > defaultRollingFrictionImpulse) ? wheelInfo.m_brake : defaultRollingFrictionImpulse;
 				btVehicleWheelContactPoint contactPt(s, wheelInfo.m_raycastInfo.m_groundObject, wheelInfo.m_raycastInfo.m_contactPointWS, m_forwardWS[wheel], maxImpulse);
 				rollingFriction += _calc_rolling_friction(contactPt);
 			}
@@ -831,7 +834,24 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 		_update_wheel(i, state);
 	}
 
+	m_currentVehicleSpeedKmHour = 3.6f * state->get_linear_velocity().length();
+
+	const Transform &chassisWorldTransform = state->get_transform();
+
+	Vector3 fwd(
+			chassisWorldTransform.basis[0][Vector3::AXIS_Z],
+			chassisWorldTransform.basis[1][Vector3::AXIS_Z],
+			chassisWorldTransform.basis[2][Vector3::AXIS_Z]);
+
+	if (fwd.dot(state->get_linear_velocity()) < 0.f) {
+		m_currentVehicleSpeedKmHour *= -1.f;
+	}
+
 	_update_center_of_mass_position();
+	
+	//
+	// simulate suspension
+	//
 
 	for (int i = 0; i < wheels.size(); i++) {
 
@@ -919,10 +939,18 @@ NodePath VehicleBody::get_center_of_mass() const {
 }
 
 
+float VehicleBody::get_current_vehicle_speed_km_hour() const {
+	return m_currentVehicleSpeedKmHour;
+}
+
+
 void VehicleBody::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_center_of_mass", "node"), &VehicleBody::set_center_of_mass);
 	ClassDB::bind_method(D_METHOD("get_center_of_mass"), &VehicleBody::get_center_of_mass);
+
+	ClassDB::bind_method(D_METHOD("get_vehicle_speed_km_hour"), &VehicleBody::get_current_vehicle_speed_km_hour);
+
 
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "center_of_mass", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Spatial"), "set_center_of_mass", "get_center_of_mass");
 
@@ -932,7 +960,6 @@ void VehicleBody::_bind_methods() {
 VehicleBody::VehicleBody() :
 		RigidBody() {
 
-	m_pitchControl = 0.f;
 	m_currentVehicleSpeedKmHour = 0.f;
 
 	m_center_of_mass = Vector3();
@@ -949,7 +976,6 @@ VehicleBody::VehicleBody() :
 
 
 void VehicleBody::_update_center_of_mass_node() {
-	print_line(String(center_of_mass));
 	id_center_of_mass = 0;
 	if (has_node(center_of_mass)) {
 		Node *node = get_node(center_of_mass);

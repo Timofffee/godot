@@ -75,6 +75,8 @@ class VehicleWheel : public Spatial {
 	real_t m_rollInfluence;
 	real_t m_engineForce;
 	real_t m_brake;
+	real_t m_contactDamping;
+	real_t m_defaultRollingFriction;
 
 	real_t m_clippedInvContactDotSuspension;
 	real_t m_suspensionRelativeVelocity;
@@ -112,6 +114,12 @@ public:
 
 	void set_roll_influence(float p_value);
 	float get_roll_influence() const;
+
+	void set_contact_damping(float p_value);
+	float get_contact_damping() const;
+
+	void set_default_rolling_friction(float p_value);
+	float get_default_rolling_friction() const;
 
 	void set_radius(float p_radius);
 	float get_radius() const;
@@ -156,7 +164,6 @@ class VehicleBody : public RigidBody {
 
 	GDCLASS(VehicleBody, RigidBody);
 
-	real_t m_pitchControl;
 	real_t m_currentVehicleSpeedKmHour;
 
 
@@ -186,7 +193,7 @@ class VehicleBody : public RigidBody {
 	void _update_center_of_mass_node();
 	void _update_center_of_mass_position();
 
-	void _resolve_single_bilateral(PhysicsDirectBodyState *s, const Vector3 &pos1, PhysicsBody *body2, const Vector3 &pos2, const Vector3 &normal, real_t &impulse, const real_t p_rollInfluence);
+	void _resolve_single_bilateral(PhysicsDirectBodyState *s, const Vector3 &pos1, PhysicsBody *body2, const Vector3 &pos2, const Vector3 &normal, real_t &impulse, const real_t p_rollInfluence, const real_t p_contactDamping);
 	real_t _calc_rolling_friction(btVehicleWheelContactPoint &contactPoint);
 
 	void _update_friction(PhysicsDirectBodyState *s);
@@ -208,6 +215,8 @@ public:
 
 	void set_center_of_mass(const NodePath &p_center_of_mass);
 	NodePath get_center_of_mass() const;
+
+	float get_current_vehicle_speed_km_hour() const;
 
 	VehicleBody();
 };
